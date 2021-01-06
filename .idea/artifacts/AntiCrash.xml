@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="AntiCrash">
+    <output-path>$PROJECT_DIR$/../../../Programmieren/Java/TestServer/plugins</output-path>
+    <root id="archive" name="AntiCrash.jar">
+      <element id="module-output" name="AntiCrash" />
+      <element id="file-copy" path="$PROJECT_DIR$/plugin.yml" />
+    </root>
+  </artifact>
+</component>

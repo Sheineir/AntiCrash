@@ -1,0 +1,6 @@
+name: AntiCrash
+author: JavaInteger
+version: 1.0
+main: net.anticrash.AntiCrash
+commands:
+  anticrash:
