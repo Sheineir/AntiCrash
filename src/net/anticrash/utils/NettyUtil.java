@@ -32,32 +32,43 @@ public class NettyUtil {
         Channel channel = craftPlayer.getHandle().playerConnection.networkManager.channel;
         channel.pipeline().replace("decoder", "decoder", new ByteToMessageDecoder() {
             @Override
-            protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf, List<Object> list) throws Exception {
-                if (byteBuf.readableBytes() != 0) {
-                    PacketDataSerializer packetDataSerializer = new PacketDataSerializer(byteBuf);
-                    int i = packetDataSerializer.e();
-                    Packet<?> packet = channelHandlerContext.channel().attr(NetworkManager.c).get().a(EnumProtocolDirection.SERVERBOUND, i);
-                    if (packet == null) {
-                        throw new IOException("Bad packet id " + i);
-                    } else {
-                        packet.a(packetDataSerializer);
-                        if (packetDataSerializer.readableBytes() > 0) {
-                            throw new IOException("Packet " + channelHandlerContext.channel().attr(NetworkManager.c).get().a() + "/" + i + " (" + packet.getClass().getSimpleName() + ") was larger than I expected, found " + packetDataSerializer.readableBytes() + " bytes extra whilst reading packet " + i);
+            protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf, List<Object> list) {
+                try {
+                    if (byteBuf.readableBytes() != 0) {
+                        PacketDataSerializer packetDataSerializer = new PacketDataSerializer(byteBuf);
+                        int i = packetDataSerializer.e();
+                        Packet<?> packet = channelHandlerContext.channel().attr(NetworkManager.c).get().a(EnumProtocolDirection.SERVERBOUND, i);
+                        if (packet == null) {
+                            channelHandlerContext.close();
+                            return;
                         } else {
-                            if(isDetected(packet, channelHandlerContext) || byteBuf.capacity() > 10000)
-                                punish(craftPlayer, channelHandlerContext, packet);
-                            else {
-                                list.add(packet);
+                            packet.a(packetDataSerializer);
+                            if (packetDataSerializer.readableBytes() > 0) {
+                                channelHandlerContext.close();
+                                return;
+                            } else {
+                                if(isDetected(packet, channelHandlerContext) || byteBuf.capacity() > 10000)
+                                    punish(craftPlayer, channelHandlerContext, packet);
+                                else {
+                                    list.add(packet);
+                                }
                             }
                         }
+                    } else {
+                        channelHandlerContext.close();
+                        return;
                     }
+                } catch (Exception exception) {
+                    channelHandlerContext.flush();
+                    channelHandlerContext.close();
+                    return;
                 }
             }
         });
     }
 
     /*
-    isDetected - Sorts through the parties and starts other other checks.
+    isDetected - Sorts through the packets and starts other other checks.
     This method has been made by me.
      */
 
@@ -105,8 +116,7 @@ public class NettyUtil {
 
     private boolean isTrash(CraftPlayer craftPlayer, String string) {
         if(string.equals("BOOK"))
-            if (craftPlayer.getInventory().getItemInHand().getType() != Material.BOOK_AND_QUILL && craftPlayer.getInventory().getItemInHand().getType() != Material.WRITTEN_BOOK)
-                return true;
+                return craftPlayer.getInventory().getItemInHand().getType() != Material.BOOK_AND_QUILL && craftPlayer.getInventory().getItemInHand().getType() != Material.WRITTEN_BOOK;
         if(string.equals("FIREWORK"))
             return craftPlayer.getInventory().getItemInHand().getType() != Material.FIREWORK_CHARGE && craftPlayer.getInventory().getItemInHand().getType() != Material.FIREWORK;
         return false;
